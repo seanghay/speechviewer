@@ -107,7 +107,8 @@ export async function createApp(datasetPath, dbPath) {
 			.select("status")
 			.count("* as total");
 
-		const remaining = changes.reduce((prev, cur) => prev + cur.total, 0);
+		const remaining =
+			data.length - changes.reduce((prev, cur) => prev + cur.total, 0);
 
 		res.json({
 			total: data.length,

@@ -14,6 +14,9 @@ import "react-virtualized/styles.css";
 import TimeAgo from "timeago-react";
 
 function SpeechListView({ items, setItems, scrollerRef }) {
+	const currentPlayerRef = useRef(null);
+	const listRef = useRef(null);
+
 	useEffect(() => {
 		const controller = new AbortController();
 		(async () => {
@@ -28,6 +31,15 @@ function SpeechListView({ items, setItems, scrollerRef }) {
 
 	const rowRenderer = ({ key, style, index }) => {
 		const item = items[index];
+
+		const handleOnPlay = (e) => {
+			const el = e.currentTarget;
+			if (currentPlayerRef.current) {
+				currentPlayerRef.current.pause();
+			}
+			currentPlayerRef.current = el;
+			el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+		};
 
 		const onDrop = async () => {
 			const res = await axios.post("/api/update", {
@@ -89,8 +101,23 @@ function SpeechListView({ items, setItems, scrollerRef }) {
 
 		return (
 			<div key={item.file} style={style} className="pb-1">
-				<div className="mx-auto border-t max-w-5xl flex flex-col gap-2 h-full bg-white border-b border-x py-2 px-4">
-					<audio className="w-full" controls src={item.file} />
+				<div
+					className={clsx(
+						"mx-auto border-t max-w-5xl flex flex-col gap-2 h-full rounded-lg border-b border-x py-2 px-4",
+						item.status === "normal"
+							? "bg-blue-50 border-2"
+							: item.status === "drop"
+								? "bg-orange-50"
+								: "bg-white",
+					)}
+				>
+					{/* biome-ignore lint/a11y/useMediaCaption: ignored */}
+					<audio
+						onPlay={handleOnPlay}
+						className="w-full"
+						controls
+						src={item.file}
+					/>
 
 					<textarea
 						value={item.text}
@@ -102,7 +129,7 @@ function SpeechListView({ items, setItems, scrollerRef }) {
 						<button
 							type="button"
 							onClick={onSaveChanges}
-							className="transition flex text-slate-500 hover:text-slate-600 items-center gap-1 hover:bg-slate-100 active:bg-slate-200 text-xs px-1.5 border rounded-lg py-1 font-medium"
+							className="transition bg-white flex text-slate-500 hover:text-slate-600 items-center gap-1 hover:bg-slate-100 active:bg-slate-200 text-xs px-1.5 border rounded-lg py-1 font-medium"
 						>
 							<FiSave fontSize={16} />
 							<span>Save</span>
@@ -111,7 +138,7 @@ function SpeechListView({ items, setItems, scrollerRef }) {
 						<button
 							type="button"
 							onClick={onDrop}
-							className="transition flex text-slate-500 hover:text-orange-600 items-center gap-1 hover:bg-slate-100 active:bg-slate-200 text-xs px-1.5 border rounded-lg py-1 font-medium"
+							className="transition bg-white flex text-slate-500 hover:text-orange-600 items-center gap-1 hover:bg-slate-100 active:bg-slate-200 text-xs px-1.5 border rounded-lg py-1 font-medium"
 						>
 							<FiXCircle fontSize={16} />
 							<span>Drop</span>
@@ -148,9 +175,11 @@ function SpeechListView({ items, setItems, scrollerRef }) {
 			<WindowScroller ref={scrollerRef}>
 				{({ height, isScrolling, onChildScroll, scrollTop, width }) => (
 					<List
+						ref={listRef}
 						autoHeight
 						width={width}
 						height={height}
+						scrollToAlignment="center"
 						rowCount={items.length}
 						rowHeight={computeRowHeight}
 						isScrolling={isScrolling}
